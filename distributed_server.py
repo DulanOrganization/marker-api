@@ -75,6 +75,9 @@ def is_celery_alive() -> bool:
 
 def setup_routes(app: FastAPI, celery_live: bool):
     logger.info("Setting up routes")
+    @app.post("/convert", response_model=ConversionResponse)
+    async def convert_pdf(pdf_file: UploadFile = File(...)):
+        return await celery_convert_pdf_concurrent_await(pdf_file)
     if celery_live:
         logger.info("Adding Celery routes")
 

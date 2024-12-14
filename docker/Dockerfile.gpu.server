@@ -53,13 +53,13 @@ RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https:/
 WORKDIR /app
 
 # Copy the project files into the Docker image
-COPY ../ ./
+COPY . .
 
 # Install Python dependencies
 RUN pip3 install --no-cache-dir -e .
 
 RUN python -c 'from marker.models import load_all_models; load_all_models()'
 
-EXPOSE 8080
+EXPOSE 8010
 
-CMD ["python", "server.py", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python", "server.py", "--host", "0.0.0.0", "--port", "8010"]

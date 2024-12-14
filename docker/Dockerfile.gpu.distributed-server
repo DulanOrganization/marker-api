@@ -60,4 +60,4 @@ RUN pip3 install --no-cache-dir -e .
 
 RUN python -c 'from marker.models import load_all_models; load_all_models()'
 
-EXPOSE 8080
+EXPOSE 8010
