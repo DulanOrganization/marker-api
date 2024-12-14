@@ -33,6 +33,44 @@ services:
           devices:
             - capabilities: [gpu]  # Request GPU support
 
+  sentence_text_embedding:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gpu.sentence-text-embedding-server
+    image: sentence-text-embedding-gpu
+    command: uvicorn sentence_text_embedding:app --host 0.0.0.0 --port 8020 --workers 3
+    environment:
+      - ENV=production
+      - CUDA_VISIBLE_DEVICES=1
+    ports:
+      - "8020:8020"
+    volumes:
+    - .:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+  
+  image_embedding:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gpu.image-embedding-server
+    image: image-embedding-gpu
+    command: uvicorn image_embedding:app --host 0.0.0.0 --port 8030 --workers 3
+    environment:
+      - ENV=production
+      - CUDA_VISIBLE_DEVICES=1
+    ports:
+      - "8030:8030"
+    volumes:
+      - .:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]
+
   flower:
     container_name: flower_gpu
     image: marker-api-gpu
