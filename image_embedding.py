@@ -61,8 +61,11 @@ clip_service = CLIPService()
 @app.post("/get_embeddings")
 async def get_embeddings(req: EmbeddingsRequest):
     # Process text embeddings
-    text_embeds = clip_service.text2vec(req.texts)
-    text_embeddings_list = text_embeds.cpu().tolist()
+    if len(req.texts) > 0:
+        text_embeds = clip_service.text2vec(req.texts)
+        text_embeddings_list = text_embeds.cpu().tolist()
+    else:
+        text_embeddings_list = []
 
     # Decode base64 images into PIL Images
     pil_images = []

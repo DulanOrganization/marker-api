@@ -47,7 +47,7 @@ async def get_embeddings(input_data: TextsInput):
 
     # Apply mean pooling to get sentence embeddings
     embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-    embeddings_list = embeddings.squeeze().cpu().tolist()
+    embeddings_list = embeddings.cpu().tolist()
 
     return {"embeddings": embeddings_list}
 
