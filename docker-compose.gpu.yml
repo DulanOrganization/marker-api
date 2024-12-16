@@ -89,3 +89,12 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]  # Request GPU support
+  
+  tika:
+    image: openjdk:11-slim
+    working_dir: /app
+    command: ["java", "-jar", "tika-server-standard-2.9.2.jar", "--host", "0.0.0.0", "--port=9998"]
+    ports:
+      - "9998:9998"
+    volumes:
+      - ./tika:/app

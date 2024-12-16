@@ -6,12 +6,18 @@
 # For running in production
 
 ## Docker Setup
-<!-- 1. sudo apt-get update && sudo apt-get install -y apt-utils
-2. docker build -f docker/Dockerfile.gpu.server -t marker-api-gpu . -->
+1. sudo apt-get update && sudo apt-get install -y apt-utils
+2. docker build -f docker/Dockerfile.gpu.server -t marker-api-gpu .
 
 ## Docker Compose Setup
-1. docker compose -f docker-compose.gpu.yml up --build --scale celery_worker=3 --scale sentence_text_embedding=1 --scale image_embedding=1
+1. docker compose -f docker-compose.gpu.yml up --build --scale celery_worker=3 --scale sentence_text_embedding=1 --scale image_embedding=1 --scale tika=1
 
+### INFORMATION : (Services : Ports)
+
+1. Marker API : 8010
+2. Sentence Text Embedding API : 8020
+3. Image Embedding API : 8030
+4. Tika Server : 9998
 
 Sample curl command to test the Marker API
 ```
