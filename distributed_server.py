@@ -1,7 +1,6 @@
 import argparse
-import uvicorn
 import logging
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Body
 from celery.exceptions import TimeoutError
 from fastapi.middleware.cors import CORSMiddleware
 from marker_api.celery_worker import celery_app
@@ -31,7 +30,6 @@ from typing import List
 configure_logging()
 logger = logging.getLogger(__name__)
 
-# Global variable to hold model list
 app = FastAPI()
 
 logger.info("Configuring CORS middleware")
@@ -42,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=True,
 )
-
 
 @app.get("/health", response_model=HealthResponse)
 def server():
@@ -76,14 +73,11 @@ def is_celery_alive() -> bool:
 def setup_routes(app: FastAPI, celery_live: bool):
     logger.info("Setting up routes")
     @app.post("/convert", response_model=ConversionResponse)
-    async def convert_pdf(pdf_file: UploadFile = File(...)):
-        return await celery_convert_pdf_concurrent_await(pdf_file)
+    async def convert_pdf(pdf_filename: str = Body(..., embed=True)):
+        print("pdf_filename : ", pdf_filename)
+        return await celery_convert_pdf_concurrent_await(pdf_filename)
     if celery_live:
         logger.info("Adding Celery routes")
-
-        @app.post("/convert", response_model=ConversionResponse)
-        async def convert_pdf(pdf_file: UploadFile = File(...)):
-            return await celery_convert_pdf_concurrent_await(pdf_file)
 
         @app.post("/celery/convert", response_model=CeleryTaskResponse)
         async def celery_convert(pdf_file: UploadFile = File(...)):
@@ -104,7 +98,7 @@ def setup_routes(app: FastAPI, celery_live: bool):
         logger.info("Adding real-time conversion route")
     else:
         logger.warning("Celery routes not added as Celery is not alive")
-    app = gr.mount_gradio_app(app, demo_ui, path="")
+    app = gr.mount_gradio_app(app, demo_ui, path="/demo")
 
 
 def parse_args():
@@ -118,15 +112,9 @@ def parse_args():
     )
     return parser.parse_args()
 
-
+celery_alive = is_celery_alive()
+setup_routes(app, celery_alive)
+    
 if __name__ == "__main__":
-    args = parse_args()
     print_markerapi_text_art()
-    logger.info(f"Starting FastAPI app on {args.host}:{args.port}")
-    celery_alive = is_celery_alive()
-    setup_routes(app, celery_alive)
-    try:
-        uvicorn.run(app, host=args.host, port=args.port)
-    except Exception as e:
-        logger.critical(f"Failed to start the application: {str(e)}")
-        raise
+    

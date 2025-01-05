@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 from marker_api.celery_tasks import convert_pdf_to_markdown, process_batch
 import logging
 import asyncio
+import aiofiles
 from typing import List
 
 logger = logging.getLogger(__name__)
@@ -36,11 +37,16 @@ async def celery_convert_pdf_sync(pdf_file: UploadFile = File(...)):
     return {"status": "Success", "result": result}
 
 
-async def celery_convert_pdf_concurrent_await(pdf_file: UploadFile = File(...)):
-    contents = await pdf_file.read()
+async def celery_convert_pdf_concurrent_await(pdf_filename: str):
+    print("pdf_filename : ", pdf_filename)
+    
+    async with aiofiles.open(pdf_filename, "rb") as pdf_file:
+        contents = await pdf_file.read()
+
+    print("Length of contents : ", len(contents))
 
     # Start the Celery task
-    task = convert_pdf_to_markdown.delay(pdf_file.filename, contents)
+    task = convert_pdf_to_markdown.delay(pdf_filename, contents)
 
     # Define an asynchronous function to check task status
     async def check_task_status():

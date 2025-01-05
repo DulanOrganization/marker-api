@@ -19,6 +19,15 @@ def initialize_models(**kwargs):
         model_list = load_all_models()
         print("Models loaded at worker startup")
 
+# MODEL_CACHE = None
+
+# def get_model():
+#     global MODEL_CACHE
+#     if MODEL_CACHE is None:
+#         # Load model(s) here, including any GPU .to(device) calls
+#         MODEL_CACHE = load_all_models()
+#     return MODEL_CACHE
+
 
 class PDFConversionTask(Task):
     abstract = True
@@ -35,8 +44,11 @@ class PDFConversionTask(Task):
     ignore_result=False, bind=True, base=PDFConversionTask, name="convert_pdf"
 )
 def convert_pdf_to_markdown(self, filename, pdf_content):
+    print("Length of pdf_content : ", len(pdf_content))
     pdf_file = io.BytesIO(pdf_content)
+    print("Before convert_single_pdf")
     markdown_text, images, metadata = convert_single_pdf(pdf_file, model_list)
+    print("After convert_single_pdf")
     image_data = {}
     for i, (img_filename, image) in enumerate(images.items()):
         logger.debug(f"Processing image {img_filename}")

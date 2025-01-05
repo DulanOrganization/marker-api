@@ -3,12 +3,13 @@ services:
     build:
       context: .  # Keep the build context as the root directory
       dockerfile: docker/Dockerfile.gpu.distributed-server  # Specify the new path to the GPU Dockerfile
-    command: celery -A marker_api.celery_worker.celery_app worker --pool=solo --loglevel=info
+    command: celery -A marker_api.celery_worker.celery_app worker --loglevel=info --pool=solo
     image: marker-api-gpu
     volumes:
       - .:/app
     environment:
       - REDIS_HOST=${REDIS_HOST}
+      - RABBITMQ_BROKER=${RABBITMQ_BROKER}
       - PAGINATE_OUTPUT=1
       - CUDA_VISIBLE_DEVICES=1
     deploy:
@@ -20,7 +21,7 @@ services:
   app:
     container_name: marker-api-gpu
     image: marker-api-gpu
-    command: python distributed_server.py --host 0.0.0.0 --port 8010
+    command: uvicorn distributed_server:app --host 0.0.0.0 --port 8010 --workers 3
     environment:
       - ENV=production
       - PAGINATE_OUTPUT=1
@@ -29,6 +30,7 @@ services:
       - "8010:8010"
     volumes:
       - .:/app
+      - /home/puvendhan/godseye/rawData:/app/rawData
     depends_on:
       - celery_worker
     networks:
@@ -83,24 +85,24 @@ services:
           devices:
           - capabilities: [gpu]
 
-  flower:
-    container_name: flower_gpu
-    image: marker-api-gpu
-    command: celery -A marker_api.celery_worker.celery_app flower --port=5555
-    ports:
-      - 5556:5555
-    volumes:
-      - .:/app
-    environment:
-      - REDIS_HOST=${REDIS_HOST}
-    depends_on:
-      - app
-      - celery_worker
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - capabilities: [gpu]  # Request GPU support
+  # flower:
+  #   container_name: flower_gpu
+  #   image: marker-api-gpu
+  #   command: celery -A marker_api.celery_worker.celery_app flower --port=5555
+  #   ports:
+  #     - 5556:5555
+  #   volumes:
+  #     - .:/app
+  #   environment:
+  #     - REDIS_HOST=${REDIS_HOST}
+  #   depends_on:
+  #     - app
+  #     - celery_worker
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - capabilities: [gpu]  # Request GPU support
   
   tika:
     container_name: tika-server
