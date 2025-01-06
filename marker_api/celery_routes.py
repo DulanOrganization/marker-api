@@ -37,22 +37,22 @@ async def celery_convert_pdf_sync(pdf_file: UploadFile = File(...)):
     return {"status": "Success", "result": result}
 
 
-async def celery_convert_pdf_concurrent_await(pdf_filename: str):
-    print("pdf_filename : ", pdf_filename)
-    
+async def celery_convert_pdf_concurrent_await(pdf_filename: str):    
     async with aiofiles.open(pdf_filename, "rb") as pdf_file:
         contents = await pdf_file.read()
 
-    print("Length of contents : ", len(contents))
+    print("Length of contents : ", len(contents), flush=True)
 
     # Start the Celery task
     task = convert_pdf_to_markdown.delay(pdf_filename, contents)
+    print("Task started : ", task, flush=True)
 
     # Define an asynchronous function to check task status
     async def check_task_status():
         while True:
             if task.ready():
                 return task.get()
+            print("Task not ready yet, waiting...", flush=True)
             await asyncio.sleep(1)  # Wait for 1 second before checking again
 
     try:

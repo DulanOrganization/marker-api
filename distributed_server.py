@@ -1,5 +1,6 @@
 import argparse
 import logging
+import asyncio
 from fastapi import FastAPI, UploadFile, File, Body
 from celery.exceptions import TimeoutError
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,12 +26,22 @@ from marker_api.model.schema import (
     ServerType,
 )
 from typing import List
+from contextlib import asynccontextmanager
 
 # Initialize logging
 configure_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print_markerapi_text_art()
+    await setup_celery()
+    yield
+    # Shutdown
+    pass
+
+app = FastAPI(lifespan=lifespan)
 
 logger.info("Configuring CORS middleware")
 app.add_middleware(
@@ -61,8 +72,8 @@ def server():
 def is_celery_alive() -> bool:
     logger.debug("Checking if Celery is alive")
     try:
-        result = celery_app.send_task("celery.ping")
-        result.get(timeout=3)
+        result = celery_app.send_task("my_custom_ping")
+        result.get(timeout=90)
         logger.info("Celery is alive")
         return True
     except (TimeoutError, Exception) as e:
@@ -72,12 +83,13 @@ def is_celery_alive() -> bool:
 
 def setup_routes(app: FastAPI, celery_live: bool):
     logger.info("Setting up routes")
-    @app.post("/convert", response_model=ConversionResponse)
-    async def convert_pdf(pdf_filename: str = Body(..., embed=True)):
-        print("pdf_filename : ", pdf_filename)
-        return await celery_convert_pdf_concurrent_await(pdf_filename)
     if celery_live:
         logger.info("Adding Celery routes")
+        
+        @app.post("/convert", response_model=ConversionResponse)
+        async def convert_pdf(pdf_filename: str = Body(..., embed=True)):
+            print("pdf_filename : ", pdf_filename, flush=True)
+            return await celery_convert_pdf_concurrent_await(pdf_filename)
 
         @app.post("/celery/convert", response_model=CeleryTaskResponse)
         async def celery_convert(pdf_file: UploadFile = File(...)):
@@ -112,9 +124,12 @@ def parse_args():
     )
     return parser.parse_args()
 
-celery_alive = is_celery_alive()
-setup_routes(app, celery_alive)
-    
-if __name__ == "__main__":
-    print_markerapi_text_art()
-    
+async def setup_celery():
+    await asyncio.sleep(90)
+    result = celery_app.send_task("test_hello")
+    print("Got result:", result.get(timeout=90))
+    celery_alive = is_celery_alive()
+    print("Celery alive:", celery_alive)
+    setup_routes(app, celery_alive)
+
+

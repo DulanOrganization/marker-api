@@ -23,6 +23,8 @@ services:
     image: marker-api-gpu
     command: uvicorn distributed_server:app --host 0.0.0.0 --port 8010 --workers 3
     environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - RABBITMQ_BROKER=${RABBITMQ_BROKER}
       - ENV=production
       - PAGINATE_OUTPUT=1
       - CUDA_VISIBLE_DEVICES=1

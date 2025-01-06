@@ -7,14 +7,22 @@ from dotenv import load_dotenv
 
 load_dotenv(".env")
 
+print("REDIS_HOST : ", os.environ.get("REDIS_HOST"))
+
 celery_app = Celery(
     "celery_app",
     broker=os.environ.get("RABBITMQ_BROKER", "pyamqp://guest:guest@35.202.12.228:5672/"),
-    backend=os.environ.get("REDIS_HOST", "redis://localhost:6379/0"),
+    backend=os.environ.get("REDIS_HOST", "redis://34.30.218.47:6379/0"),
     include=["marker_api.celery_tasks"],
+    task_serializer='json',
+    result_serializer='json',
+    accept_content=['json'],  # Restrict to JSON for safety
+    result_expires=3600,
 )
 
-@celery_app.task(name="celery.ping")
-def ping():
-    print("Ping task received!")  # or use a logger
-    return "pong"
+# Check if Celery is active
+try:
+    celery_app.control.ping()
+    print("Celery is active and responding")
+except Exception as e:
+    print(f"Celery is not active: {str(e)}")
