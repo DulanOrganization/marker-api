@@ -11,7 +11,8 @@ print("REDIS_HOST : ", os.environ.get("REDIS_HOST"))
 
 celery_app = Celery(
     "celery_app",
-    broker=os.environ.get("RABBITMQ_BROKER", "pyamqp://guest:guest@35.202.12.228:5672/"),
+    # broker=os.environ.get("RABBITMQ_BROKER", "pyamqp://guest:guest@35.202.12.228:5672/"),
+    broker=os.environ.get("REDIS_HOST", "redis://34.30.218.47:6379/0"),
     backend=os.environ.get("REDIS_HOST", "redis://34.30.218.47:6379/0"),
     include=["marker_api.celery_tasks"],
     task_serializer='json',
