@@ -20,8 +20,16 @@ celery_app = Celery(
     result_serializer='json',
     accept_content=['json'],  # Restrict to JSON for safety
     result_expires=3600,
+    broker_heartbeat=900,  # Increase heartbeat interval
+    broker_connection_retry_on_startup=True,
+    broker_connection_timeout=3600,  # Increase connection timeout
+    task_acks_late=True,  # Ensure tasks are acknowledged after completion
 )
-
+celery_app.conf.worker_heartbeat_interval = 900
+celery_app.conf.worker_prefetch_multiplier = 1
+# Timeout settings
+celery_app.conf.task_time_limit = 3600  # 2 hours
+celery_app.conf.task_soft_time_limit = 3600  # Graceful exit before hard kill
 # Check if Celery is active
 try:
     celery_app.conf.update(

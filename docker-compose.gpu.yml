@@ -7,6 +7,8 @@ services:
     image: marker-api-gpu
     volumes:
       - .:/app
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - RABBITMQ_BROKER=${RABBITMQ_BROKER}
@@ -33,6 +35,8 @@ services:
     volumes:
       - .:/app
       - /home/puvendhan/godseye/rawData:/app/rawData
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       - celery_worker
     networks:
@@ -57,6 +61,8 @@ services:
       - "8020:8020"
     volumes:
     - .:/app
+    - /etc/localtime:/etc/localtime:ro
+    - /etc/timezone:/etc/timezone:ro
     networks:
       - default
     deploy:
@@ -79,6 +85,8 @@ services:
       - "8030:8030"
     volumes:
       - .:/app
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - default
     deploy:
