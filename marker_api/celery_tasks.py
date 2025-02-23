@@ -40,30 +40,65 @@ class PDFConversionTask(Task):
         return self.run(*args, **kwargs)
 
 
-@celery_app.task(
-    ignore_result=False, bind=True, base=PDFConversionTask, name="convert_pdf"
-)
+# 1️⃣ Task: Convert PDF to Markdown and Send to Queue
+@celery_app.task(ignore_result=False, bind=True, base=PDFConversionTask, name="convert_pdf")
 def convert_pdf_to_markdown(self, filename, pdf_content):
-    print("Length of pdf_content : ", len(pdf_content), flush=True)
-    pdf_file = io.BytesIO(pdf_content)
-    print("Before convert_single_pdf", flush=True)
-    markdown_text, images, metadata = convert_single_pdf(pdf_file, model_list)
-    print("After convert_single_pdf", flush=True)
-    image_data = {}
-    for i, (img_filename, image) in enumerate(images.items()):
-        logger.debug(f"Processing image {img_filename}")
-        image_base64 = process_image_to_base64(image, img_filename)
-        image_data[img_filename] = image_base64
+    """Converts PDF to Markdown and sends result to process_continue_queue."""
+    try:
+        print(f"📄 Processing {filename}...")
 
-    return {
-        "filename": filename,
-        "markdown": markdown_text,
-        "metadata": metadata,
-        "images": image_data,
-        "status": "ok",
-    }
+        # Convert PDF
+        pdf_file = io.BytesIO(pdf_content)
+        markdown_text, images, metadata = convert_single_pdf(pdf_file, model_list)
+        print(f"✅ PDF Conversion completed for {filename}")
+
+        # Process images to Base64
+        image_data = {
+            img_filename: process_image_to_base64(image, img_filename)
+            for img_filename, image in images.items()
+        }
+
+        # Prepare result
+        result = {
+            "filename": filename,
+            "markdown": markdown_text,
+            "metadata": metadata,
+            "images": image_data,
+            "status": "ok",
+        }
+
+        # Send results to process_continue_queue
+        send_to_process_continue_queue.delay(filename, markdown_text, metadata)
+
+        return result
+
+    except Exception as e:
+        logger.error(f"❌ Error processing {filename}: {str(e)}")
+        raise e
 
 
+# 2️⃣ Task: Send results to process_continue_queue
+@celery_app.task(queue="process_continue_queue", name="send_to_process_continue_queue")
+def send_to_process_continue_queue(filename, markdown, metadata):
+    """Sends the processed PDF result to the next queue for embedding."""
+    try:
+        task_payload = {
+            "filename": filename,
+            "markdown": markdown,
+            "metadata": metadata
+        }
+
+        print(f"📤 Sending {filename} to process_continue_queue...")
+
+        # Send task to Godseye for further processing
+        celery_app.send_task("godseye.tasks.process_continue_task", args=[task_payload])
+
+        print(f"✅ Task sent for {filename}.")
+        return {"status": "success", "filename": filename}
+
+    except Exception as e:
+        logger.error(f"❌ Failed to send {filename} to queue: {str(e)}")
+        raise e
 # @celery_app.task(
 #     ignore_result=False, bind=True, base=PDFConversionTask, name="process_batch"
 # )
